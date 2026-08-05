@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -36,14 +36,17 @@ const showcaseItems = [
   {
     id: graphicDesignItems[0],
     label: "Visual design",
+    type: "design",
   },
   {
     id: videoItems[0],
     label: "Video content",
+    type: "video",
   },
   {
     id: articleItems[0],
     label: "Editorial work",
+    type: "article",
   },
 ];
 
@@ -132,6 +135,34 @@ const ArticleIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+const ImageIcon = ({ className = "h-7 w-7" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <rect x="3" y="4" width="18" height="16" rx="3" />
+    <circle cx="9" cy="10" r="2" />
+    <path d="m4 17 5-4 4 3 3-2 4 3" />
+  </svg>
+);
+
+const PlayIcon = ({ className = "w-5 h-5" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="m8 5 11 7-11 7V5Z" />
+  </svg>
+);
+
 const getTabIcon = (tabId) => {
   if (tabId === "graphic-design") {
     return <DesignIcon className="w-4 h-4" />;
@@ -142,6 +173,112 @@ const getTabIcon = (tabId) => {
   }
 
   return <ArticleIcon className="w-4 h-4" />;
+};
+
+const getShowcasePosition = (index) => {
+  if (index === 0) {
+    return "left-0 top-8 -rotate-[7deg]";
+  }
+
+  if (index === 1) {
+    return "left-1/2 top-0 z-20 -translate-x-1/2 rotate-[1deg]";
+  }
+
+  return "right-0 top-10 rotate-[7deg]";
+};
+
+const ProjectPreviewImage = ({ itemId, label, type, priority = false }) => {
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const sources = [
+    `https://drive.google.com/thumbnail?id=${itemId}&sz=w1000`,
+    `https://drive.google.com/thumbnail?id=${itemId}`,
+    `https://lh3.googleusercontent.com/d/${itemId}=w1000`,
+  ];
+
+  const handleError = () => {
+    if (sourceIndex < sources.length - 1) {
+      setSourceIndex((currentIndex) => currentIndex + 1);
+      return;
+    }
+
+    setFailed(true);
+    setLoaded(true);
+
+    window.requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+  };
+
+  const handleLoad = () => {
+    setLoaded(true);
+
+    window.requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+  };
+
+  if (failed) {
+    return (
+      <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#f3dce5,#d9c7e6)] dark:bg-[linear-gradient(145deg,#4b2b39,#2b2130)]">
+        <div
+          className="absolute -right-7 -top-7 h-24 w-24 rounded-full border-[18px] border-white/20 dark:border-white/[0.05]"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 text-center text-[#98506c] dark:text-[#e9a5bd]">
+          {type === "video" ? (
+            <PlayIcon className="w-8 h-8 mx-auto" />
+          ) : (
+            <ImageIcon className="mx-auto" />
+          )}
+
+          <p className="mt-3 font-Inter text-[0.58rem] font-semibold uppercase tracking-[0.14em]">
+            {label}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-[#ead9e0] dark:bg-[#281d25]">
+      {!loaded && (
+        <div className="absolute inset-0 z-10 overflow-hidden bg-[linear-gradient(145deg,#f3dce5,#e4d8ed)] dark:bg-[linear-gradient(145deg,#432936,#29212f)]">
+          <div className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,transparent_20%,rgba(255,255,255,0.45)_45%,transparent_70%)] bg-[length:250%_100%]" />
+
+          <div className="relative flex h-full items-center justify-center text-[#a65a77] dark:text-[#d796ae]">
+            {type === "video" ? (
+              <PlayIcon className="h-7 w-7" />
+            ) : (
+              <ImageIcon className="h-7 w-7" />
+            )}
+          </div>
+        </div>
+      )}
+
+      <img
+        src={sources[sourceIndex]}
+        alt={`${label} portfolio preview`}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding="async"
+        onLoad={handleLoad}
+        onError={handleError}
+        className={`h-full w-full object-contain p-1 transition-all duration-700 group-hover:scale-105 ${
+          loaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      {type === "video" && loaded && (
+        <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-[#4b2032]/35 text-white shadow-lg backdrop-blur-xl">
+          <PlayIcon className="ml-0.5 h-4 w-4" />
+        </span>
+      )}
+    </div>
+  );
 };
 
 const Project = () => {
@@ -157,6 +294,12 @@ const Project = () => {
 
   const totalProjects = tabs.reduce((total, tab) => total + tab.count, 0);
 
+  /*
+   * Critical fix:
+   * The archive cards and tab buttons are never hidden.
+   * GSAP only animates their position, so delayed layout
+   * calculations cannot leave them invisible.
+   */
   useLayoutEffect(() => {
     const section = sectionRef.current;
 
@@ -164,67 +307,101 @@ const Project = () => {
       return undefined;
     }
 
+    const cleanupFunctions = [];
+    const refreshTimers = [];
+
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
     const context = gsap.context(() => {
+      const revealElements = gsap.utils.toArray("[data-project-reveal]");
+
+      const showcaseElements = gsap.utils.toArray("[data-project-showcase]");
+
+      const tabElements = gsap.utils.toArray("[data-project-tab]");
+
+      /*
+       * Set all important interface elements visible before
+       * creating any animation.
+       */
+      gsap.set([...revealElements, ...showcaseElements, ...tabElements], {
+        autoAlpha: 1,
+      });
+
       if (prefersReducedMotion) {
-        gsap.set(
-          [
-            "[data-project-reveal]",
-            "[data-project-showcase]",
-            "[data-project-tab]",
-          ],
-          {
-            clearProps: "all",
-            autoAlpha: 1,
-          },
-        );
+        gsap.set([...revealElements, ...showcaseElements, ...tabElements], {
+          clearProps: "transform,opacity,visibility",
+        });
 
         return;
       }
 
-      gsap.from("[data-project-reveal]", {
-        y: 38,
-        autoAlpha: 0,
-        duration: 0.95,
-        stagger: 0.1,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: section,
-          start: "top 75%",
-          once: true,
+      /*
+       * Only the section heading uses ScrollTrigger.
+       * immediateRender:false prevents GSAP from hiding it
+       * while waiting for the trigger.
+       */
+      gsap.fromTo(
+        revealElements,
+        {
+          y: 34,
+          autoAlpha: 0,
         },
-      });
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.85,
+          stagger: 0.09,
+          ease: "power3.out",
+          immediateRender: false,
+          clearProps: "transform,opacity,visibility",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 78%",
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
 
-      gsap.from("[data-project-showcase]", {
-        y: 46,
-        rotation: (index) => (index === 0 ? -4 : index === 2 ? 4 : 0),
-        scale: 0.92,
-        autoAlpha: 0,
-        duration: 0.9,
-        stagger: 0.12,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: "[data-project-archive]",
-          start: "top 78%",
-          once: true,
+      /*
+       * Archive cards render immediately.
+       * Only their entrance position is animated.
+       */
+      gsap.fromTo(
+        showcaseElements,
+        {
+          y: 26,
+          scale: 0.96,
         },
-      });
+        {
+          y: 0,
+          scale: 1,
+          duration: 0.75,
+          stagger: 0.1,
+          ease: "power3.out",
+          clearProps: "transform",
+        },
+      );
 
-      gsap.from("[data-project-tab]", {
-        y: 22,
-        autoAlpha: 0,
-        duration: 0.7,
-        stagger: 0.08,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: "[data-project-tabs]",
-          start: "top 85%",
-          once: true,
+      /*
+       * Tabs render immediately.
+       * No opacity animation is used.
+       */
+      gsap.fromTo(
+        tabElements,
+        {
+          y: 18,
         },
-      });
+        {
+          y: 0,
+          duration: 0.65,
+          stagger: 0.07,
+          ease: "power3.out",
+          clearProps: "transform",
+        },
+      );
 
       gsap.to("[data-project-float='one']", {
         y: -10,
@@ -262,17 +439,89 @@ const Project = () => {
       });
     }, section);
 
+    const refreshScrollTrigger = () => {
+      window.requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+      });
+    };
+
+    /*
+     * Refresh after the browser has painted the section.
+     */
+    const firstFrame = window.requestAnimationFrame(() => {
+      const secondFrame = window.requestAnimationFrame(refreshScrollTrigger);
+
+      cleanupFunctions.push(() => {
+        window.cancelAnimationFrame(secondFrame);
+      });
+    });
+
+    cleanupFunctions.push(() => {
+      window.cancelAnimationFrame(firstFrame);
+    });
+
+    /*
+     * Refresh again after fonts and the general page layout settle.
+     */
+    refreshTimers.push(window.setTimeout(refreshScrollTrigger, 250));
+
+    refreshTimers.push(window.setTimeout(refreshScrollTrigger, 900));
+
+    /*
+     * Refresh when remote Google Drive previews finish loading.
+     */
+    const images = Array.from(section.querySelectorAll("img"));
+
+    images.forEach((image) => {
+      if (image.complete) {
+        return;
+      }
+
+      image.addEventListener("load", refreshScrollTrigger);
+
+      image.addEventListener("error", refreshScrollTrigger);
+
+      cleanupFunctions.push(() => {
+        image.removeEventListener("load", refreshScrollTrigger);
+
+        image.removeEventListener("error", refreshScrollTrigger);
+      });
+    });
+
+    window.addEventListener("load", refreshScrollTrigger);
+
+    cleanupFunctions.push(() => {
+      window.removeEventListener("load", refreshScrollTrigger);
+    });
+
     return () => {
+      cleanupFunctions.forEach((cleanup) => cleanup);
+
+      cleanupFunctions.forEach((cleanup) => {
+        cleanup();
+      });
+
+      refreshTimers.forEach((timer) => {
+        window.clearTimeout(timer);
+      });
+
       context.revert();
     };
   }, []);
 
-  useLayoutEffect(() => {
+  /*
+   * Animate a newly selected collection without hiding it.
+   */
+  useEffect(() => {
     const content = contentRef.current;
 
     if (!content) {
       return undefined;
     }
+
+    gsap.set(content, {
+      autoAlpha: 1,
+    });
 
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -280,9 +529,10 @@ const Project = () => {
 
     if (prefersReducedMotion) {
       gsap.set(content, {
-        clearProps: "all",
-        autoAlpha: 1,
+        clearProps: "transform,opacity,visibility",
       });
+
+      ScrollTrigger.refresh();
 
       return undefined;
     }
@@ -290,21 +540,36 @@ const Project = () => {
     const animation = gsap.fromTo(
       content,
       {
-        y: 28,
-        autoAlpha: 0,
+        y: 20,
       },
       {
         y: 0,
-        autoAlpha: 1,
-        duration: 0.7,
+        duration: 0.6,
         ease: "power3.out",
+        clearProps: "transform",
+        onComplete: () => {
+          ScrollTrigger.refresh();
+        },
       },
     );
 
+    const refreshFrame = window.requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+
     return () => {
       animation.kill();
+      window.cancelAnimationFrame(refreshFrame);
+
+      gsap.set(content, {
+        clearProps: "transform,opacity,visibility",
+      });
     };
   }, [activeTab]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+  };
 
   const handleTabKeyDown = (event, currentIndex) => {
     let nextIndex = currentIndex;
@@ -323,7 +588,7 @@ const Project = () => {
 
     event.preventDefault();
 
-    setActiveTab(tabs[nextIndex].id);
+    handleTabChange(tabs[nextIndex].id);
     tabButtonRefs.current[nextIndex]?.focus();
   };
 
@@ -373,12 +638,12 @@ const Project = () => {
       />
 
       <div className="relative w-full px-5 py-24 mx-auto max-w-7xl sm:px-8 sm:py-28 lg:px-10 lg:py-32">
-        {/* Heading and portfolio archive */}
+        {/* Heading and archive */}
         <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
           <div>
             <div
               data-project-reveal
-              className="inline-flex items-center gap-2 rounded-full border border-[#d6b5c2]/60 bg-white/70 px-4 py-2 shadow-[0_12px_34px_rgba(94,46,65,0.07)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]"
+              className="inline-flex items-center gap-2 rounded-full border border-[#d6b5c2]/60 bg-white/70 px-4 py-2 opacity-100 shadow-[0_12px_34px_rgba(94,46,65,0.07)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]"
             >
               <SparkleIcon className="h-4 w-4 text-[#a75072] dark:text-[#efaac4]" />
 
@@ -389,7 +654,7 @@ const Project = () => {
 
             <h2
               data-project-reveal
-              className="mt-6 max-w-4xl font-Poppins text-[clamp(2.5rem,6vw,5.5rem)] font-semibold leading-[1.01] tracking-[-0.065em] text-[#302028] dark:text-[#fff8fb]"
+              className="mt-6 max-w-4xl font-Poppins text-[clamp(2.5rem,6vw,5.5rem)] font-semibold leading-[1.01] tracking-[-0.065em] text-[#302028] opacity-100 dark:text-[#fff8fb]"
             >
               A growing archive of ideas
               <span className="block font-medium italic text-[#a34e70] dark:text-[#eda8c2]">
@@ -399,7 +664,7 @@ const Project = () => {
 
             <p
               data-project-reveal
-              className="mt-7 max-w-2xl font-Inter text-base font-normal leading-7 text-[#705b64] dark:text-[#c6b9bf] sm:text-lg sm:leading-8"
+              className="mt-7 max-w-2xl font-Inter text-base font-normal leading-7 text-[#705b64] opacity-100 dark:text-[#c6b9bf] sm:text-lg sm:leading-8"
             >
               Explore a collection of graphic design, video production, and
               written content created for digital audiences, campaigns, and
@@ -408,7 +673,7 @@ const Project = () => {
 
             <div
               data-project-reveal
-              className="flex flex-wrap items-center gap-3 mt-8"
+              className="flex flex-wrap items-center gap-3 mt-8 opacity-100"
             >
               <div className="rounded-full border border-[#dcc2cc] bg-white/65 px-4 py-2.5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.045]">
                 <span className="font-Poppins text-lg font-semibold text-[#914360] dark:text-[#efa9c3]">
@@ -432,7 +697,7 @@ const Project = () => {
             </div>
           </div>
 
-          {/* Archive collage */}
+          {/* Visual archive */}
           <div
             data-project-archive
             className="relative mx-auto w-full max-w-[560px]"
@@ -469,44 +734,32 @@ const Project = () => {
               </div>
 
               <div className="relative mx-auto mt-8 h-[255px] max-w-[410px] sm:h-[300px]">
-                {showcaseItems.map((item, index) => {
-                  const positionClasses = [
-                    "left-0 top-8 -rotate-[7deg]",
-                    "left-1/2 top-0 z-20 -translate-x-1/2 rotate-[1deg]",
-                    "right-0 top-10 rotate-[7deg]",
-                  ];
-
-                  return (
-                    <div
-                      key={item.id}
-                      data-project-showcase
-                      className={`group absolute w-[42%] overflow-hidden rounded-[1.35rem] border border-white/85 bg-white p-2 shadow-[0_24px_55px_rgba(80,38,55,0.18)] transition-all duration-500 hover:z-30 hover:-translate-y-3 hover:rotate-0 sm:w-[40%] dark:border-white/10 dark:bg-[#211820] ${positionClasses[index]}`}
-                    >
-                      <div className="relative aspect-[3/4] overflow-hidden rounded-[1rem] bg-[#ead9e0] dark:bg-[#281d25]">
-                        <img
-                          src={`https://drive.google.com/thumbnail?id=${item.id}&sz=w1000`}
-                          alt=""
-                          aria-hidden="true"
-                          className="absolute inset-0 object-cover w-full h-full scale-110 opacity-35 blur-xl"
-                        />
-
-                        <img
-                          src={`https://drive.google.com/thumbnail?id=${item.id}&sz=w1000`}
-                          alt={`${item.label} portfolio preview`}
-                          className="relative object-contain w-full h-full p-1 transition-transform duration-700 group-hover:scale-105"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-2.5">
-                        <span className="font-Inter text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#806472] dark:text-[#b8a8af]">
-                          {item.label}
-                        </span>
-
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#b85d7f]" />
-                      </div>
+                {showcaseItems.map((item, index) => (
+                  <div
+                    key={item.id}
+                    data-project-showcase
+                    className={`group absolute block w-[42%] overflow-hidden rounded-[1.35rem] border border-white/85 bg-white p-2 opacity-100 shadow-[0_24px_55px_rgba(80,38,55,0.18)] transition-all duration-500 hover:z-30 hover:-translate-y-3 hover:rotate-0 sm:w-[40%] dark:border-white/10 dark:bg-[#211820] ${getShowcasePosition(
+                      index,
+                    )}`}
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-[1rem]">
+                      <ProjectPreviewImage
+                        itemId={item.id}
+                        label={item.label}
+                        type={item.type}
+                        priority={index === 1}
+                      />
                     </div>
-                  );
-                })}
+
+                    <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-2.5">
+                      <span className="font-Inter text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#806472] dark:text-[#b8a8af]">
+                        {item.label}
+                      </span>
+
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#b85d7f]" />
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="relative z-10 mt-3 grid grid-cols-3 gap-2.5">
@@ -532,7 +785,7 @@ const Project = () => {
         {/* Category tabs */}
         <div
           data-project-tabs
-          className="mt-16 rounded-[2rem] border border-[#dfc6d0]/75 bg-white/60 p-2 shadow-[0_20px_55px_rgba(88,43,60,0.07)] backdrop-blur-2xl lg:mt-24 dark:border-white/10 dark:bg-white/[0.04]"
+          className="mt-16 block rounded-[2rem] border border-[#dfc6d0]/75 bg-white/60 p-2 opacity-100 shadow-[0_20px_55px_rgba(88,43,60,0.07)] backdrop-blur-2xl lg:mt-24 dark:border-white/10 dark:bg-white/[0.04]"
         >
           <div
             role="tablist"
@@ -555,9 +808,9 @@ const Project = () => {
                   aria-controls={`${tab.id}-panel`}
                   tabIndex={isActive ? 0 : -1}
                   data-project-tab
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
-                  className={`group relative flex min-h-[4.6rem] items-center gap-3 overflow-hidden rounded-[1.45rem] border px-4 text-left transition-all duration-400 hover:!scale-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#dba7bb]/40 sm:px-5 ${
+                  className={`group relative flex min-h-[4.6rem] items-center gap-3 overflow-hidden rounded-[1.45rem] border px-4 text-left opacity-100 transition-all duration-300 hover:!scale-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#dba7bb]/40 sm:px-5 ${
                     isActive
                       ? "border-[#a95676] bg-[#8d4160] text-white shadow-[0_15px_35px_rgba(113,48,73,0.22)] dark:border-[#dc88a7]/30 dark:bg-[#d981a3] dark:text-[#2c151f]"
                       : "border-transparent bg-transparent text-[#60434f] hover:border-[#dfc4ce] hover:bg-white/70 dark:text-[#d4c5cb] dark:hover:border-white/10 dark:hover:bg-white/[0.05]"
@@ -615,7 +868,7 @@ const Project = () => {
           role="tabpanel"
           aria-labelledby={`${activeTabData.id}-tab`}
           tabIndex={0}
-          className="mt-7 rounded-[2.2rem] focus:outline-none sm:mt-8"
+          className="mt-7 block rounded-[2.2rem] opacity-100 focus:outline-none sm:mt-8"
         >
           <ActiveCollection key={activeTab} />
         </div>
